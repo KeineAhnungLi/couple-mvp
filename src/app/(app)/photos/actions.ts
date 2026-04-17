@@ -7,6 +7,10 @@ import { uploadPhotoToCos } from "@/lib/server/storage";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
+const redirectWithError = (message: string) => {
+  redirect(`/photos?error=${encodeURIComponent(message)}`);
+};
+
 export const uploadPhotoAction = async (formData: FormData) => {
   const context = await requireCoupleContext();
 
@@ -14,15 +18,15 @@ export const uploadPhotoAction = async (formData: FormData) => {
   const caption = String(formData.get("caption") ?? "").trim();
 
   if (!(photo instanceof File) || photo.size === 0) {
-    redirect("/photos?error=请选择照片");
+    redirectWithError("请选择照片");
   }
 
   if (!photo.type.startsWith("image/")) {
-    redirect("/photos?error=仅支持图片文件");
+    redirectWithError("仅支持图片文件");
   }
 
   if (photo.size > MAX_FILE_SIZE) {
-    redirect("/photos?error=图片不能超过15MB");
+    redirectWithError("图片不能超过15MB");
   }
 
   try {
@@ -52,7 +56,7 @@ export const uploadPhotoAction = async (formData: FormData) => {
         ? error.message
         : "上传失败，请稍后重试";
 
-    redirect(`/photos?error=${encodeURIComponent(message)}`);
+    redirectWithError(message);
   }
 
   redirect("/photos?uploaded=1");

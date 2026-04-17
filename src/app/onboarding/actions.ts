@@ -41,6 +41,10 @@ const throwActionError = (message: string) => {
   throw new Error(`ACTION:${message}`);
 };
 
+const redirectWithError = (message: string) => {
+  redirect(`/onboarding?error=${encodeURIComponent(message)}`);
+};
+
 export const createCoupleAction = async (formData: FormData) => {
   const context = await requireAuth();
 
@@ -50,7 +54,7 @@ export const createCoupleAction = async (formData: FormData) => {
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    redirect("/onboarding?error=请输入空间名称");
+    redirectWithError("请输入空间名称");
   }
 
   let inviteCode = "";
@@ -107,7 +111,7 @@ export const createCoupleAction = async (formData: FormData) => {
   }
 
   if (!created) {
-    redirect(`/onboarding?error=${encodeURIComponent(lastError)}`);
+    redirectWithError(lastError);
   }
 
   redirect(`/onboarding?invite=${inviteCode}`);
@@ -121,7 +125,7 @@ const internalJoinByCode = async (inviteCode: string) => {
   }
 
   if (!inviteCode) {
-    redirect("/onboarding?error=邀请码不能为空");
+    redirectWithError("邀请码不能为空");
   }
 
   try {
@@ -176,7 +180,7 @@ const internalJoinByCode = async (inviteCode: string) => {
     });
   } catch (error) {
     const message = parseDbActionError(error, "加入空间失败");
-    redirect(`/onboarding?error=${encodeURIComponent(message)}`);
+    redirectWithError(message);
   }
 
   redirect("/");
