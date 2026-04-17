@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireCoupleContext } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { dbQueryOne } from "@/lib/server/db";
 
 export const createDiaryEntryAction = async (formData: FormData) => {
   const context = await requireCoupleContext();
@@ -17,21 +17,29 @@ export const createDiaryEntryAction = async (formData: FormData) => {
 
   const entryDate = new Date().toISOString().slice(0, 10);
 
-  const supabase = await createServerSupabaseClient();
+  try {
+    await dbQueryOne(
+      `
+      insert into diary_entries (couple_id, author_id, prompt_id, entry_date, content, visibility)
+      values ($1, $2, $3, $4, $5, 'couple')
+      returning id
+      `,
+      [
+        context.membership.couple_id,
+        context.userId,
+        Number.isFinite(promptId) ? promptId : null,
+        entryDate,
+        content,
+      ],
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "发布失败";
 
-  const { error } = await supabase.from("diary_entries").insert({
-    couple_id: context.membership.couple_id,
-    author_id: context.userId,
-    prompt_id: Number.isFinite(promptId) ? promptId : null,
-    entry_date: entryDate,
-    content,
-    visibility: "couple",
-  });
-
-  if (error) {
-    redirect(`/diary?error=${encodeURIComponent(error.message)}`);
+    redirect(`/diary?error=${encodeURIComponent(message)}`);
   }
 
   redirect("/diary?saved=1");
 };
-

@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# CoupleSpace (Tencent Cloud CVM Deploy)
 
-## Getting Started
+Next.js 15 + PostgreSQL + Tencent COS + CDN。
 
-First, run the development server:
+## 固定生产约定
+
+- 域名：`liebe.shanjideutsch.site`
+- Next.js 端口：`3000`
+- Nginx 反代：`http://127.0.0.1:3000`
+- PostgreSQL：`127.0.0.1:5432`
+- 数据库/用户：`loveapp` / `loveuser`
+- COS Bucket：`test-1386792709`
+- COS Region：`ap-nanjing`
+- CDN 域名：`https://cdn.shanjideutsch.site`
+- 照片 URL 规则：`https://cdn.shanjideutsch.site/{objectKey}`
+- objectKey 规则：`photos/{coupleId}/{yyyy}/{mm}/{uuid}.{ext}`
+
+## 环境变量
+
+复制 `.env.example` 为 `.env.local` 后填写真实密钥。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 初始化数据库（只建表，不创建 DB/用户）
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/init.sql
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 首次部署
 
-## Learn More
+```bash
+git clone https://github.com/KeineAhnungLi/couple-mvp.git
+cd couple-mvp
+npm install
+npm run build
+pm2 start npm --name couple-mvp -- start -- -p 3000
+pm2 save
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Nginx 配置示例
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+文件：`/etc/nginx/conf.d/liebe.shanjideutsch.site.conf`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```nginx
+server {
+  listen 80;
+  server_name liebe.shanjideutsch.site;
 
-## Deploy on Vercel
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+生效命令：
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## 更新发布
+
+```bash
+cd couple-mvp
+git pull
+npm install
+npm run build
+pm2 restart couple-mvp
+```
+
+## 账号初始化（关闭公开注册）
+
+生成 bcrypt 密码哈希：
+
+```bash
+node -e "const {hash}=require('bcryptjs');hash('your_password',12).then(v=>console.log(v))"
+```
+
+插入用户：
+
+```sql
+insert into users (email, password_hash, display_name)
+values ('a@example.com', '<bcrypt_hash>', 'A');
+
+insert into users (email, password_hash, display_name)
+values ('b@example.com', '<bcrypt_hash>', 'B');
+```

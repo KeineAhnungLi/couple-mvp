@@ -1,58 +1,71 @@
 ﻿import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type {
-  Couple,
-  CoupleMember,
-  UserProfile,
-  ViewerContext,
-} from "@/types/domain";
+import { dbQueryOne } from "@/lib/server/db";
+import { getCurrentSession } from "@/lib/server/session";
+import type { Couple, CoupleMember, ViewerContext } from "@/types/domain";
+
+interface MembershipRow {
+  id: string;
+  couple_id: string;
+  user_id: string;
+  role: "owner" | "partner";
+  joined_at: string;
+}
+
+interface CoupleRow {
+  id: string;
+  name: string;
+  invite_code: string;
+  status: "open" | "full" | "archived";
+  created_by: string;
+  created_at: string;
+}
+
+export const getCurrentUser = async () => {
+  const session = await getCurrentSession();
+  return session?.user ?? null;
+};
 
 export const getViewerContext = async (): Promise<ViewerContext | null> => {
-  const supabase = await createServerSupabaseClient();
+  const session = await getCurrentSession();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  if (!session) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("id, display_name, avatar_url, created_at")
-    .eq("id", user.id)
-    .maybeSingle();
+  const membership = await dbQueryOne<MembershipRow>(
+    `
+    select id, couple_id, user_id, role, joined_at
+    from couple_members
+    where user_id = $1
+    `,
+    [session.userId],
+  );
 
-  const { data: membership } = await supabase
-    .from("couple_members")
-    .select("id, couple_id, user_id, role, joined_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  let couple: Couple | null = null;
+  let couple: CoupleRow | null = null;
 
   if (membership) {
-    const { data: coupleData } = await supabase
-      .from("couples")
-      .select("id, name, invite_code, status, created_by, created_at")
-      .eq("id", membership.couple_id)
-      .maybeSingle();
-
-    couple = coupleData;
+    couple = await dbQueryOne<CoupleRow>(
+      `
+      select id, name, invite_code, status, created_by, created_at
+      from couples
+      where id = $1
+      `,
+      [membership.couple_id],
+    );
   }
 
   return {
-    userId: user.id,
-    email: user.email ?? null,
-    profile: (profile as UserProfile | null) ?? null,
+    userId: session.userId,
+    email: session.user.email,
+    profile: session.user,
     membership: (membership as CoupleMember | null) ?? null,
-    couple,
+    couple: (couple as Couple | null) ?? null,
   };
 };
 
 export const requireAuth = async (): Promise<ViewerContext> => {
   const context = await getViewerContext();
+
   if (!context) {
     redirect("/login");
   }
@@ -76,3 +89,10 @@ export const requireCoupleContext = async (): Promise<
   };
 };
 
+export const requireCoupleMember = async (coupleId: string): Promise<void> => {
+  const context = await requireAuth();
+
+  if (!context.membership || context.membership.couple_id !== coupleId) {
+    redirect("/onboarding");
+  }
+};

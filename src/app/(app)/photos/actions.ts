@@ -2,7 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { requireCoupleContext } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { dbQueryOne } from "@/lib/server/db";
+import { uploadPhotoToCos } from "@/lib/server/storage";
+
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
 export const uploadPhotoAction = async (formData: FormData) => {
   const context = await requireCoupleContext();
@@ -14,34 +17,43 @@ export const uploadPhotoAction = async (formData: FormData) => {
     redirect("/photos?error=请选择照片");
   }
 
-  const extension = photo.name.split(".").pop() ?? "jpg";
-  const objectPath = `${context.membership.couple_id}/${context.userId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-
-  const supabase = await createServerSupabaseClient();
-
-  const { error: uploadError } = await supabase.storage
-    .from("couple-photos")
-    .upload(objectPath, photo, {
-      upsert: false,
-      contentType: photo.type || "image/jpeg",
-    });
-
-  if (uploadError) {
-    redirect(`/photos?error=${encodeURIComponent(uploadError.message)}`);
+  if (!photo.type.startsWith("image/")) {
+    redirect("/photos?error=仅支持图片文件");
   }
 
-  const { error: insertError } = await supabase.from("photos").insert({
-    couple_id: context.membership.couple_id,
-    uploaded_by: context.userId,
-    image_url: objectPath,
-    caption: caption || null,
-    taken_at: new Date().toISOString(),
-  });
+  if (photo.size > MAX_FILE_SIZE) {
+    redirect("/photos?error=图片不能超过15MB");
+  }
 
-  if (insertError) {
-    redirect(`/photos?error=${encodeURIComponent(insertError.message)}`);
+  try {
+    const uploaded = await uploadPhotoToCos({
+      file: photo,
+      coupleId: context.membership.couple_id,
+    });
+
+    await dbQueryOne(
+      `
+      insert into photos (couple_id, uploaded_by, object_key, image_url, caption, taken_at)
+      values ($1, $2, $3, $4, $5, $6)
+      returning id
+      `,
+      [
+        context.membership.couple_id,
+        context.userId,
+        uploaded.objectKey,
+        uploaded.url,
+        caption || null,
+        new Date().toISOString(),
+      ],
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "上传失败，请稍后重试";
+
+    redirect(`/photos?error=${encodeURIComponent(message)}`);
   }
 
   redirect("/photos?uploaded=1");
 };
-

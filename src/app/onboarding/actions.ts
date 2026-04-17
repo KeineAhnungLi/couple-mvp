@@ -2,10 +2,43 @@
 
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withTransaction } from "@/lib/server/db";
 
 const generateInviteCode = () => {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
+};
+
+const parseDbActionError = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message.startsWith("ACTION:")) {
+    return error.message.replace("ACTION:", "");
+  }
+
+  const dbCode =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error
+      ? String((error as { code: unknown }).code)
+      : "";
+  const dbConstraint =
+    typeof error === "object" &&
+    error !== null &&
+    "constraint" in error
+      ? String((error as { constraint: unknown }).constraint)
+      : "";
+
+  if (dbCode === "23505" && dbConstraint.includes("couple_members_user_id")) {
+    return "你已经加入了另一个情侣空间";
+  }
+
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message: unknown }).message);
+  }
+
+  return fallback;
+};
+
+const throwActionError = (message: string) => {
+  throw new Error(`ACTION:${message}`);
 };
 
 export const createCoupleAction = async (formData: FormData) => {
@@ -20,45 +53,61 @@ export const createCoupleAction = async (formData: FormData) => {
     redirect("/onboarding?error=请输入空间名称");
   }
 
-  const supabase = await createServerSupabaseClient();
-  let insertErrorMessage = "创建空间失败";
-  let createdCoupleId: string | null = null;
   let inviteCode = "";
+  let created = false;
+  let lastError = "创建空间失败";
 
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     inviteCode = generateInviteCode();
 
-    const { data, error } = await supabase
-      .from("couples")
-      .insert({
-        name,
-        invite_code: inviteCode,
-        created_by: context.userId,
-        status: "open",
-      })
-      .select("id")
-      .single();
+    try {
+      await withTransaction(async (client) => {
+        const coupleRes = await client.query<{ id: string }>(
+          `
+          insert into couples (name, invite_code, status, created_by)
+          values ($1, $2, 'open', $3)
+          returning id
+          `,
+          [name, inviteCode, context.userId],
+        );
 
-    if (!error) {
-      createdCoupleId = data.id;
+        const coupleId = coupleRes.rows[0]?.id;
+
+        if (!coupleId) {
+          throwActionError("创建空间失败");
+        }
+
+        await client.query(
+          `
+          insert into couple_members (couple_id, user_id, role)
+          values ($1, $2, 'owner')
+          `,
+          [coupleId, context.userId],
+        );
+      });
+
+      created = true;
+      break;
+    } catch (error) {
+      const dbCode =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error
+          ? String((error as { code: unknown }).code)
+          : "";
+
+      if (dbCode === "23505") {
+        lastError = "邀请码冲突，正在重试";
+        continue;
+      }
+
+      lastError = parseDbActionError(error, "创建空间失败");
       break;
     }
-
-    insertErrorMessage = error.message;
   }
 
-  if (!createdCoupleId) {
-    redirect(`/onboarding?error=${encodeURIComponent(insertErrorMessage)}`);
-  }
-
-  const { error: memberError } = await supabase.from("couple_members").insert({
-    couple_id: createdCoupleId,
-    user_id: context.userId,
-    role: "owner",
-  });
-
-  if (memberError) {
-    redirect(`/onboarding?error=${encodeURIComponent(memberError.message)}`);
+  if (!created) {
+    redirect(`/onboarding?error=${encodeURIComponent(lastError)}`);
   }
 
   redirect(`/onboarding?invite=${inviteCode}`);
@@ -75,47 +124,60 @@ const internalJoinByCode = async (inviteCode: string) => {
     redirect("/onboarding?error=邀请码不能为空");
   }
 
-  const supabase = await createServerSupabaseClient();
+  try {
+    await withTransaction(async (client) => {
+      const coupleRes = await client.query<{ id: string; status: string }>(
+        `
+        select id, status
+        from couples
+        where invite_code = $1
+        for update
+        `,
+        [inviteCode],
+      );
 
-  const { data: couple, error: coupleError } = await supabase
-    .from("couples")
-    .select("id, status")
-    .eq("invite_code", inviteCode)
-    .maybeSingle();
+      const couple = coupleRes.rows[0];
 
-  if (coupleError || !couple) {
-    redirect("/onboarding?error=邀请码不存在");
+      if (!couple) {
+        throwActionError("邀请码不存在");
+      }
+
+      if (couple.status !== "open") {
+        throwActionError("该空间已满员或不可加入");
+      }
+
+      const memberCountRes = await client.query<{ total: string }>(
+        `
+        select count(*)::text as total
+        from couple_members
+        where couple_id = $1
+        `,
+        [couple.id],
+      );
+
+      const memberCount = Number(memberCountRes.rows[0]?.total ?? "0");
+
+      if (memberCount >= 2) {
+        await client.query(`update couples set status = 'full' where id = $1`, [couple.id]);
+        throwActionError("该空间已满员");
+      }
+
+      await client.query(
+        `
+        insert into couple_members (couple_id, user_id, role)
+        values ($1, $2, 'partner')
+        `,
+        [couple.id, context.userId],
+      );
+
+      if (memberCount + 1 >= 2) {
+        await client.query(`update couples set status = 'full' where id = $1`, [couple.id]);
+      }
+    });
+  } catch (error) {
+    const message = parseDbActionError(error, "加入空间失败");
+    redirect(`/onboarding?error=${encodeURIComponent(message)}`);
   }
-
-  if (couple.status !== "open") {
-    redirect("/onboarding?error=该空间已满员或不可加入");
-  }
-
-  const { count } = await supabase
-    .from("couple_members")
-    .select("id", { count: "exact", head: true })
-    .eq("couple_id", couple.id);
-
-  if ((count ?? 0) >= 2) {
-    await supabase
-      .from("couples")
-      .update({ status: "full" })
-      .eq("id", couple.id);
-
-    redirect("/onboarding?error=该空间已满员");
-  }
-
-  const { error: joinError } = await supabase.from("couple_members").insert({
-    couple_id: couple.id,
-    user_id: context.userId,
-    role: "partner",
-  });
-
-  if (joinError) {
-    redirect(`/onboarding?error=${encodeURIComponent(joinError.message)}`);
-  }
-
-  await supabase.from("couples").update({ status: "full" }).eq("id", couple.id);
 
   redirect("/");
 };
@@ -131,4 +193,3 @@ export const joinCoupleAction = async (formData: FormData) => {
 export const joinCoupleByCodeAction = async (inviteCode: string) => {
   await internalJoinByCode(inviteCode.trim().toUpperCase());
 };
-

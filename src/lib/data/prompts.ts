@@ -1,4 +1,4 @@
-﻿import { createServerSupabaseClient } from "@/lib/supabase/server";
+﻿import { dbQuery } from "@/lib/server/db";
 
 const FALLBACK_PROMPTS = [
   "今天最让你开心的一件小事是什么？",
@@ -13,16 +13,21 @@ export interface TodayPrompt {
   promptText: string;
 }
 
+interface PromptRow {
+  id: number;
+  prompt_text: string;
+}
+
 export const getTodayPrompt = async (): Promise<TodayPrompt> => {
-  const supabase = await createServerSupabaseClient();
+  const prompts = await dbQuery<PromptRow>(
+    `
+    select id, prompt_text
+    from diary_prompts
+    where is_active = true
+    order by id asc
+    `,
+  );
 
-  const { data } = await supabase
-    .from("diary_prompts")
-    .select("id, prompt_text")
-    .eq("is_active", true)
-    .order("id", { ascending: true });
-
-  const prompts = data ?? [];
   const source = prompts.length > 0 ? prompts.map((item) => item.prompt_text) : FALLBACK_PROMPTS;
   const index = new Date().getDate() % source.length;
 
@@ -38,4 +43,3 @@ export const getTodayPrompt = async (): Promise<TodayPrompt> => {
     promptText: source[index],
   };
 };
-

@@ -26,9 +26,9 @@ export default async function PhotoDetailPage({ params }: PhotoDetailPageProps) 
 
       <article className="space-y-3 rounded-2xl border border-line bg-surface p-4">
         <div className="relative h-80 overflow-hidden rounded-xl bg-brand-soft/30">
-          {photo.signed_url ? (
+          {photo.image_url ? (
             <Image
-              src={photo.signed_url}
+              src={photo.image_url}
               alt={photo.caption ?? "photo detail"}
               fill
               unoptimized
@@ -46,4 +46,3 @@ export default async function PhotoDetailPage({ params }: PhotoDetailPageProps) 
     </div>
   );
 }
-

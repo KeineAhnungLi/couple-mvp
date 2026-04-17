@@ -36,20 +36,18 @@ export default async function HomePage() {
 
       <section className="rounded-2xl border border-line bg-surface p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-brand">最近一张照片</p>
-        {dashboard.latestPhoto?.signed_url ? (
+        {dashboard.latestPhoto?.image_url ? (
           <>
             <div className="relative mt-2 h-40 overflow-hidden rounded-xl">
               <Image
-                src={dashboard.latestPhoto.signed_url}
+                src={dashboard.latestPhoto.image_url}
                 alt={dashboard.latestPhoto.caption ?? "latest photo"}
                 fill
                 unoptimized
                 className="object-cover"
               />
             </div>
-            <p className="mt-2 text-sm text-muted">
-              {dashboard.latestPhoto.caption ?? "无 caption"}
-            </p>
+            <p className="mt-2 text-sm text-muted">{dashboard.latestPhoto.caption ?? "无 caption"}</p>
           </>
         ) : (
           <p className="mt-2 text-sm text-muted">还没有照片，去上传第一张吧。</p>
@@ -73,4 +71,3 @@ export default async function HomePage() {
     </div>
   );
 }
-

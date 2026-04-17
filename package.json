@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.3",
-    "clsx": "^2.1.1",
+    "bcryptjs": "^3.0.3",
+    "cos-nodejs-sdk-v5": "^2.15.4",
     "next": "15.3.5",
+    "pg": "^8.20.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -20,6 +20,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
