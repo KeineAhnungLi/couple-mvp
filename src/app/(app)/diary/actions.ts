@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireCoupleContext } from "@/lib/auth";
 import { dbQueryOne } from "@/lib/server/db";
 
-const redirectWithError = (message: string) => {
+const redirectWithError = (message: string): never => {
   redirect(`/diary?error=${encodeURIComponent(message)}`);
 };
 
@@ -16,7 +16,7 @@ export const createDiaryEntryAction = async (formData: FormData) => {
   const promptId = promptIdRaw ? Number(promptIdRaw) : null;
 
   if (!content) {
-    redirectWithError("内容不能为空");
+    return redirectWithError("内容不能为空");
   }
 
   const entryDate = new Date().toISOString().slice(0, 10);
@@ -42,7 +42,7 @@ export const createDiaryEntryAction = async (formData: FormData) => {
         ? error.message
         : "发布失败";
 
-    redirectWithError(message);
+    return redirectWithError(message);
   }
 
   redirect("/diary?saved=1");

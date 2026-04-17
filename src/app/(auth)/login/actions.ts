@@ -12,7 +12,7 @@ interface LoginUserRow {
   is_active: boolean;
 }
 
-const redirectWithError = (message: string) => {
+const redirectWithError = (message: string): never => {
   redirect(`/login?error=${encodeURIComponent(message)}`);
 };
 
@@ -23,7 +23,7 @@ export const loginWithPasswordAction = async (formData: FormData) => {
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    redirectWithError("邮箱和密码不能为空");
+    return redirectWithError("邮箱和密码不能为空");
   }
 
   const user = await dbQueryOne<LoginUserRow>(
@@ -36,15 +36,17 @@ export const loginWithPasswordAction = async (formData: FormData) => {
   );
 
   if (!user || !user.is_active) {
-    redirectWithError("账号不存在或不可用");
+    return redirectWithError("账号不存在或不可用");
   }
 
-  const ok = await verifyPassword(password, user.password_hash);
+  const activeUser = user;
+
+  const ok = await verifyPassword(password, activeUser.password_hash);
 
   if (!ok) {
-    redirectWithError("邮箱或密码错误");
+    return redirectWithError("邮箱或密码错误");
   }
 
-  await createUserSession(user.id);
+  await createUserSession(activeUser.id);
   redirect("/");
 };

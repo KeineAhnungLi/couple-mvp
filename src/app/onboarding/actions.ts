@@ -41,7 +41,7 @@ const throwActionError = (message: string) => {
   throw new Error(`ACTION:${message}`);
 };
 
-const redirectWithError = (message: string) => {
+const redirectWithError = (message: string): never => {
   redirect(`/onboarding?error=${encodeURIComponent(message)}`);
 };
 
@@ -49,12 +49,12 @@ export const createCoupleAction = async (formData: FormData) => {
   const context = await requireAuth();
 
   if (context.membership) {
-    redirect("/");
+    return redirect("/");
   }
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
-    redirectWithError("请输入空间名称");
+    return redirectWithError("请输入空间名称");
   }
 
   let inviteCode = "";
@@ -111,7 +111,7 @@ export const createCoupleAction = async (formData: FormData) => {
   }
 
   if (!created) {
-    redirectWithError(lastError);
+    return redirectWithError(lastError);
   }
 
   redirect(`/onboarding?invite=${inviteCode}`);
@@ -121,11 +121,11 @@ const internalJoinByCode = async (inviteCode: string) => {
   const context = await requireAuth();
 
   if (context.membership) {
-    redirect("/");
+    return redirect("/");
   }
 
   if (!inviteCode) {
-    redirectWithError("邀请码不能为空");
+    return redirectWithError("邀请码不能为空");
   }
 
   try {
@@ -180,7 +180,7 @@ const internalJoinByCode = async (inviteCode: string) => {
     });
   } catch (error) {
     const message = parseDbActionError(error, "加入空间失败");
-    redirectWithError(message);
+    return redirectWithError(message);
   }
 
   redirect("/");
