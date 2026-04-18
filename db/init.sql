@@ -1,4 +1,4 @@
-﻿-- CoupleSpace MVP PostgreSQL init (Tencent Cloud CVM local PostgreSQL)
+-- CoupleSpace MVP PostgreSQL init (Tencent Cloud CVM local PostgreSQL)
 -- Target DB/User: loveapp / loveuser
 -- Execute with: psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/init.sql
 
@@ -61,8 +61,7 @@ create table if not exists diary_entries (
   entry_date date not null,
   content text not null,
   visibility text not null default 'couple' check (visibility in ('couple')),
-  created_at timestamptz not null default now(),
-  unique (couple_id, author_id, entry_date)
+  created_at timestamptz not null default now()
 );
 
 create table if not exists pet_state (
@@ -194,4 +193,3 @@ where not exists (select 1 from diary_prompts);
 -- Then insert users manually:
 -- insert into users (email, password_hash, display_name) values ('a@example.com','<bcrypt_hash>','A');
 -- insert into users (email, password_hash, display_name) values ('b@example.com','<bcrypt_hash>','B');
-
