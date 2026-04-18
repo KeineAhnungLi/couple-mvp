@@ -1,6 +1,11 @@
-﻿import { createHmac, randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
-import { assertEnv, env, useSecureSessionCookie } from "@/lib/env";
+import { createHmac, randomBytes } from "node:crypto";
+import { cookies, headers } from "next/headers";
+import {
+  assertEnv,
+  defaultSecureSessionCookie,
+  env,
+  sessionCookieSecureOverride,
+} from "@/lib/env";
 import { dbQueryOne } from "@/lib/server/db";
 import type { SessionUser } from "@/types/domain";
 
@@ -42,13 +47,43 @@ const generateSessionToken = (): string => {
   return randomBytes(32).toString("hex");
 };
 
+const resolveSecureCookie = async (): Promise<boolean> => {
+  if (sessionCookieSecureOverride !== null) {
+    return sessionCookieSecureOverride;
+  }
+
+  const headerStore = await headers();
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  if (forwardedProto) {
+    const proto = forwardedProto.split(",")[0]?.trim().toLowerCase();
+    if (proto === "https") {
+      return true;
+    }
+    if (proto === "http") {
+      return false;
+    }
+  }
+
+  const origin = headerStore.get("origin") ?? headerStore.get("referer");
+  if (origin) {
+    try {
+      return new URL(origin).protocol === "https:";
+    } catch {
+      return defaultSecureSessionCookie;
+    }
+  }
+
+  return defaultSecureSessionCookie;
+};
+
 const setSessionCookie = async (token: string, expiresAt: Date) => {
   const cookieStore = await cookies();
+  const secure = await resolveSecureCookie();
   cookieStore.set({
     name: env.SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
-    secure: useSecureSessionCookie,
+    secure,
     sameSite: "lax",
     path: "/",
     expires: expiresAt,
@@ -57,11 +92,12 @@ const setSessionCookie = async (token: string, expiresAt: Date) => {
 
 export const clearSessionCookie = async () => {
   const cookieStore = await cookies();
+  const secure = await resolveSecureCookie();
   cookieStore.set({
     name: env.SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
-    secure: useSecureSessionCookie,
+    secure,
     sameSite: "lax",
     path: "/",
     expires: new Date(0),
@@ -154,4 +190,3 @@ export const getCurrentSession = async (): Promise<AuthSession | null> => {
     },
   };
 };
-
