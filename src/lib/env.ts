@@ -1,4 +1,4 @@
-﻿const readEnv = (key: string, fallback = ""): string => {
+const readEnv = (key: string, fallback = ""): string => {
   const value = process.env[key];
   if (!value) {
     return fallback;
@@ -39,8 +39,9 @@ export const env = {
 };
 
 export const isProduction = env.NODE_ENV === "production";
-export const useSecureSessionCookie =
-  readBooleanEnv("SESSION_COOKIE_SECURE") ?? env.APP_BASE_URL.startsWith("https://");
+export const sessionCookieSecureOverride = readBooleanEnv("SESSION_COOKIE_SECURE");
+export const defaultSecureSessionCookie = env.APP_BASE_URL.startsWith("https://");
+export const useSecureSessionCookie = sessionCookieSecureOverride ?? defaultSecureSessionCookie;
 
 export const assertEnv = (...keys: Array<keyof typeof env>) => {
   const missing = keys.filter((key) => !env[key]);
