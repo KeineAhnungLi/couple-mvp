@@ -23,6 +23,9 @@ Next.js 15 + PostgreSQL + Tencent COS + CDN。
 cp .env.example .env.local
 ```
 
+如果当前环境仍是 HTTP（未上 HTTPS），请在 `.env.local` 设置：`SESSION_COOKIE_SECURE=false`。
+正式 HTTPS 域名部署请保持：`SESSION_COOKIE_SECURE=true`。
+
 ## 初始化数据库（只建表，不创建 DB/用户）
 
 ```bash

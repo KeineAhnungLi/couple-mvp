@@ -6,6 +6,23 @@
   return value;
 };
 
+const readBooleanEnv = (key: string): boolean | null => {
+  const value = process.env[key];
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return null;
+};
+
 export const env = {
   NODE_ENV: readEnv("NODE_ENV", "development"),
   DATABASE_URL: readEnv("DATABASE_URL"),
@@ -22,6 +39,8 @@ export const env = {
 };
 
 export const isProduction = env.NODE_ENV === "production";
+export const useSecureSessionCookie =
+  readBooleanEnv("SESSION_COOKIE_SECURE") ?? env.APP_BASE_URL.startsWith("https://");
 
 export const assertEnv = (...keys: Array<keyof typeof env>) => {
   const missing = keys.filter((key) => !env[key]);

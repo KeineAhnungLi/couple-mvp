@@ -1,6 +1,6 @@
 ﻿import { createHmac, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
-import { assertEnv, env, isProduction } from "@/lib/env";
+import { assertEnv, env, useSecureSessionCookie } from "@/lib/env";
 import { dbQueryOne } from "@/lib/server/db";
 import type { SessionUser } from "@/types/domain";
 
@@ -48,7 +48,7 @@ const setSessionCookie = async (token: string, expiresAt: Date) => {
     name: env.SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
-    secure: isProduction,
+    secure: useSecureSessionCookie,
     sameSite: "lax",
     path: "/",
     expires: expiresAt,
@@ -61,7 +61,7 @@ export const clearSessionCookie = async () => {
     name: env.SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
-    secure: isProduction,
+    secure: useSecureSessionCookie,
     sameSite: "lax",
     path: "/",
     expires: new Date(0),
@@ -154,3 +154,4 @@ export const getCurrentSession = async (): Promise<AuthSession | null> => {
     },
   };
 };
+
