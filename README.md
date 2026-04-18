@@ -1,4 +1,4 @@
-﻿# CoupleSpace (Tencent Cloud CVM Deploy)
+# CoupleSpace (Tencent Cloud CVM Deploy)
 
 Next.js 15 + PostgreSQL + Tencent COS + CDN。
 
@@ -51,6 +51,7 @@ pm2 save
 server {
   listen 80;
   server_name liebe.shanjideutsch.site;
+  client_max_body_size 20m;
 
   location / {
     proxy_pass http://127.0.0.1:3000;
