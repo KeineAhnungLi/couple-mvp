@@ -32,6 +32,12 @@ cp .env.example .env.local
 psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/init.sql
 ```
 
+## 已部署环境升级：取消“每天一条日记”限制
+
+```bash
+psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/patch_remove_diary_daily_limit.sql
+```
+
 ## 首次部署
 
 ```bash
