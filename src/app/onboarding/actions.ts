@@ -48,7 +48,7 @@ const redirectWithError = (message: string): never => {
 export const createCoupleAction = async (formData: FormData) => {
   const context = await requireAuth();
 
-  if (context.membership) {
+  if (context.membership && context.couple) {
     return redirect("/");
   }
 
@@ -120,7 +120,7 @@ export const createCoupleAction = async (formData: FormData) => {
 const internalJoinByCode = async (inviteCode: string) => {
   const context = await requireAuth();
 
-  if (context.membership) {
+  if (context.membership && context.couple) {
     return redirect("/");
   }
 

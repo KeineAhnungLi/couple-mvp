@@ -12,6 +12,10 @@ interface LoginUserRow {
   is_active: boolean;
 }
 
+interface UserCoupleStateRow {
+  has_couple: boolean;
+}
+
 const redirectWithError = (message: string): never => {
   redirect(`/login?error=${encodeURIComponent(message)}`);
 };
@@ -47,6 +51,18 @@ export const loginWithPasswordAction = async (formData: FormData) => {
     return redirectWithError("邮箱或密码错误");
   }
 
+  const userCoupleState = await dbQueryOne<UserCoupleStateRow>(
+    `
+    select exists(
+      select 1
+      from couple_members cm
+      join couples c on c.id = cm.couple_id
+      where cm.user_id = $1
+    ) as has_couple
+    `,
+    [activeUser.id],
+  );
+
   await createUserSession(activeUser.id);
-  redirect("/");
+  redirect(userCoupleState?.has_couple ? "/" : "/onboarding");
 };

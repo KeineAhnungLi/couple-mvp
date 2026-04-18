@@ -14,7 +14,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   const params = await searchParams;
   const inviteCode = typeof params.invite === "string" ? params.invite : null;
   const error = typeof params.error === "string" ? params.error : null;
-  const hasMembership = Boolean(context.membership);
+  const hasMembership = Boolean(context.membership && context.couple);
 
   if (hasMembership && !inviteCode && !error) {
     redirect("/");

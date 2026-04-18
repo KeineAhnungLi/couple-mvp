@@ -24,12 +24,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   const context = await getViewerContext();
+  const hasCompleteCouple = Boolean(context?.membership && context?.couple);
 
-  if (context?.membership) {
+  if (hasCompleteCouple) {
     redirect("/");
   }
 
-  if (context && !context.membership) {
+  if (context && !hasCompleteCouple) {
     redirect("/onboarding");
   }
 
