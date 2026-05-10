@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "20mb",
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.shanjideutsch.site",
+      },
+    ],
+    formats: ["image/avif", "image/webp"],
+  },
 };
 
 export default nextConfig;

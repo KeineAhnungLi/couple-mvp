@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { getDashboardSnapshot } from "@/lib/data/dashboard";
 import { requireCoupleContext } from "@/lib/auth";
+import { optimizeImageUrl } from "@/lib/image";
 
 export default async function HomePage() {
   const context = await requireCoupleContext();
@@ -14,6 +15,23 @@ export default async function HomePage() {
         <p className="mt-2 text-sm leading-6">{dashboard.prompt.promptText}</p>
         <Link href="/diary" className="mt-3 inline-block text-sm font-semibold text-brand">
           去写日记
+        </Link>
+      </section>
+
+      <section className="rounded-2xl border border-line bg-surface p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand">提醒</p>
+        {dashboard.nextReminder ? (
+          <>
+            <p className="mt-2 text-sm">{dashboard.nextReminder.title}</p>
+            <p className="mt-1 text-xs text-muted">
+              {new Date(dashboard.nextReminder.remind_at).toLocaleString()}
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-muted">暂无未完成提醒。</p>
+        )}
+        <Link href="/reminders" className="mt-3 inline-block text-sm font-semibold text-brand">
+          管理提醒
         </Link>
       </section>
 
@@ -40,10 +58,11 @@ export default async function HomePage() {
           <>
             <div className="relative mt-2 h-40 overflow-hidden rounded-xl">
               <Image
-                src={dashboard.latestPhoto.image_url}
+                src={optimizeImageUrl(dashboard.latestPhoto.image_url, { width: 720, quality: 75 })}
                 alt={dashboard.latestPhoto.caption ?? "latest photo"}
                 fill
-                unoptimized
+                sizes="(max-width: 768px) 100vw, 640px"
+                quality={75}
                 className="object-cover"
               />
             </div>
@@ -67,6 +86,9 @@ export default async function HomePage() {
         ) : (
           <p className="mt-2 text-sm text-muted">还没有日记，今晚写一条吧。</p>
         )}
+        <Link href="/trash" className="mt-3 inline-block text-sm font-semibold text-brand">
+          打开垃圾箱
+        </Link>
       </section>
     </div>
   );

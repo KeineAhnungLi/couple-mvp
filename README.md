@@ -1,4 +1,4 @@
-# CoupleSpace (Tencent Cloud CVM Deploy)
+﻿# CoupleSpace (Tencent Cloud CVM Deploy)
 
 Next.js 15 + PostgreSQL + Tencent COS + CDN。
 
@@ -23,7 +23,7 @@ Next.js 15 + PostgreSQL + Tencent COS + CDN。
 cp .env.example .env.local
 ```
 
-如果当前环境仍是 HTTP（未上 HTTPS），请在 `.env.local` 设置：`SESSION_COOKIE_SECURE=false`。
+如果当前环境是 HTTP（未上 HTTPS），请在 `.env.local` 设置：`SESSION_COOKIE_SECURE=false`。
 正式 HTTPS 域名部署请保持：`SESSION_COOKIE_SECURE=true`。
 
 ## 初始化数据库（只建表，不创建 DB/用户）
@@ -32,11 +32,34 @@ cp .env.example .env.local
 psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/init.sql
 ```
 
-## 已部署环境升级：取消“每天一条日记”限制
+## 已部署环境升级补丁
+
+1) 取消“每天一条日记”限制：
 
 ```bash
 psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/patch_remove_diary_daily_limit.sql
 ```
+
+2) 增加垃圾箱/评论/提醒/宠物交互表：
+
+```bash
+psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/patch_add_social_reminder_pet_trash.sql
+```
+
+3) 增加页面内提醒通知字段 + 预留 Web Push 表：
+
+```bash
+psql "postgresql://loveuser:replace_me@127.0.0.1:5432/loveapp" -f db/patch_add_in_app_notification_push.sql
+```
+
+## 通知能力
+
+- 页面内提醒（当前可用）：
+  - API 拉取：`GET /api/notifications/in-app`
+  - API 确认已读：`POST /api/notifications/in-app`
+- Web Push（预留接口，未启用发送）：
+  - 保存订阅：`POST /api/push/subscribe`
+  - 预留派发：`POST /api/push/dispatch`（需要 `x-cron-secret`）
 
 ## 首次部署
 
@@ -84,7 +107,7 @@ cd couple-mvp
 git pull
 npm install
 npm run build
-pm2 restart couple-mvp
+pm2 restart couple-mvp --update-env
 ```
 
 ## 账号初始化（关闭公开注册）

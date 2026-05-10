@@ -1,4 +1,5 @@
 ﻿import { BottomNav } from "@/components/bottom-nav";
+import { InAppReminderNotifier } from "@/components/in-app-reminder-notifier";
 import { signOutAction } from "@/app/(app)/actions";
 import { requireCoupleContext } from "@/lib/auth";
 
@@ -31,6 +32,7 @@ export default async function AppLayout({
       </header>
 
       <main className="space-y-4 px-4 py-4">{children}</main>
+      <InAppReminderNotifier />
       <BottomNav />
     </div>
   );

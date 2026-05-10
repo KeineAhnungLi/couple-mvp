@@ -38,6 +38,9 @@ export interface Photo {
   caption: string | null;
   taken_at: string | null;
   created_at: string;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  purge_at?: string | null;
 }
 
 export interface DiaryPrompt {
@@ -55,6 +58,51 @@ export interface DiaryEntry {
   entry_date: string;
   content: string;
   visibility: DiaryVisibility;
+  created_at: string;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  purge_at?: string | null;
+}
+
+export interface DiaryComment {
+  id: string;
+  entry_id: string;
+  couple_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface Reminder {
+  id: string;
+  couple_id: string;
+  created_by: string;
+  title: string;
+  note: string | null;
+  remind_at: string;
+  is_done: boolean;
+  done_at: string | null;
+  in_app_notified_at?: string | null;
+  web_push_notified_at?: string | null;
+  created_at: string;
+}
+
+export interface InAppReminderNotice {
+  id: string;
+  title: string;
+  note: string | null;
+  remind_at: string;
+}
+
+export interface PetInteraction {
+  id: string;
+  couple_id: string;
+  user_id: string;
+  action_type: string;
+  growth_delta: number;
+  mood_delta: number;
+  health_delta: number;
   created_at: string;
 }
 
@@ -101,4 +149,23 @@ export interface PhotoWithMeta extends Photo {
 export interface DiaryEntryWithMeta extends DiaryEntry {
   author_name: string;
   prompt_text: string | null;
+  comments?: DiaryCommentWithMeta[];
+}
+
+export interface DiaryCommentWithMeta extends DiaryComment {
+  author_name: string;
+}
+
+export interface ReminderWithMeta extends Reminder {
+  creator_name: string;
+}
+
+export interface TrashPhotoItem extends PhotoWithMeta {
+  deleted_at: string;
+  purge_at: string | null;
+}
+
+export interface TrashDiaryItem extends DiaryEntryWithMeta {
+  deleted_at: string;
+  purge_at: string | null;
 }

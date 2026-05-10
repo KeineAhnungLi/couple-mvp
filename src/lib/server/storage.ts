@@ -91,3 +91,26 @@ export const uploadPhotoToCos = async (
     url: buildPublicUrl(objectKey),
   };
 };
+
+export const deletePhotoFromCos = async (objectKey: string): Promise<void> => {
+  assertEnv("COS_BUCKET", "COS_REGION", "COS_SECRET_ID", "COS_SECRET_KEY");
+
+  const client = cosClient();
+
+  await new Promise<void>((resolve, reject) => {
+    client.deleteObject(
+      {
+        Bucket: env.COS_BUCKET,
+        Region: env.COS_REGION,
+        Key: objectKey,
+      },
+      (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+};

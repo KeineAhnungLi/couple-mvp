@@ -9,7 +9,10 @@ export const BottomNav = () => {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto max-w-md border-t border-line bg-surface px-3 py-2">
-      <ul className="grid grid-cols-4 gap-2">
+      <ul
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${APP_NAV_ITEMS.length}, minmax(0, 1fr))` }}
+      >
         {APP_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
 

@@ -11,6 +11,10 @@ const redirectWithError = (message: string): never => {
   redirect(`/photos?error=${encodeURIComponent(message)}`);
 };
 
+const redirectWithPhotoDetailError = (photoId: string, message: string): never => {
+  redirect(`/photos/${photoId}?error=${encodeURIComponent(message)}`);
+};
+
 export const uploadPhotoAction = async (formData: FormData) => {
   const context = await requireCoupleContext();
 
@@ -62,4 +66,42 @@ export const uploadPhotoAction = async (formData: FormData) => {
   }
 
   redirect("/photos?uploaded=1");
+};
+
+export const movePhotoToTrashAction = async (formData: FormData) => {
+  const context = await requireCoupleContext();
+  const photoId = String(formData.get("photoId") ?? "").trim();
+
+  if (!photoId) {
+    return redirectWithError("照片不存在");
+  }
+
+  try {
+    const row = await dbQueryOne<{ id: string }>(
+      `
+      update photos
+      set deleted_at = now(),
+          deleted_by = $3,
+          purge_at = now() + interval '30 days'
+      where id = $1
+        and couple_id = $2
+        and deleted_at is null
+      returning id
+      `,
+      [photoId, context.membership.couple_id, context.userId],
+    );
+
+    if (!row) {
+      return redirectWithPhotoDetailError(photoId, "照片不存在或已删除");
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "删除失败";
+
+    return redirectWithPhotoDetailError(photoId, message);
+  }
+
+  redirect("/photos?deleted=1");
 };
