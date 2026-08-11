@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AUDIO_ASSETS, AudioNarrator, CARD_NICKNAMES } from "@/lib/trio-narration";
+import { AudioNarrator, CARD_NICKNAMES, type NarrationTone } from "@/lib/trio-narration";
 import styles from "./trio-game.module.css";
 
 interface CardView { id?: string; index?: number; value: number | null; removed?: boolean }
@@ -58,6 +58,7 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
     lastSequenceRef.current = event.sequence;
     const narrator = narratorRef.current;
     let text = "";
+    let tone: NarrationTone = "normal";
     if (event.event === "hand_reveal_requested") {
       const key = `${event.actor_player_id}:${event.target_player_id}:${event.side}`;
       text = `${playerName(event.target_player_id)}，${repeatRef.current === key ? "还是" : ""}康康你${event.side === "high" ? "最大" : "最小"}的！`;
@@ -69,22 +70,24 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
       text = `哈哈，我${event.side === "high" ? "最大" : "最小"}的是一张${event.card_name}！`;
     } else if (event.event === "mismatch") {
       text = event.reveal_count === 3 ? "啊啊啊啊啊啊啊就差一点啊啊啊啊啊啊！" : "怎么不一样啊！";
-      if (event.reveal_count === 2) narrator.playAsset(AUDIO_ASSETS.mismatchCry);
+      tone = "sad";
     } else if (event.event === "trio_collected") {
       text = `三个${event.card_name}，归我啦！`;
+      tone = "excited";
     } else if (event.event === "second_trio_alert") {
       text = `警报警报！${event.player_name || playerName(event.actor_player_id)}已经有两个 Trio 了！`;
-      narrator.playAsset(AUDIO_ASSETS.secondTrioAlarm);
+      tone = "alarm";
     } else if (event.event === "bot_thinking") {
       text = "电脑琢磨一下……";
+      tone = "bot";
     } else if (event.event === "game_over") {
       const won = event.winner_id === stateRef.current?.you.id;
       text = won ? "恭喜你赢下这局！" : `${playerName(event.winner_id)}赢下了这局！`;
-      narrator.playAsset(won ? AUDIO_ASSETS.victory : AUDIO_ASSETS.defeatCry);
+      tone = won ? "excited" : "sad";
     }
     if (text) {
       setAnnouncement(text);
-      narrator.enqueue(text);
+      narrator.enqueue(text, tone);
     }
   }, [playerName]);
 
