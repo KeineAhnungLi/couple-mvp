@@ -12,6 +12,7 @@ interface GameEvent { type: "game_event"; event: string; sequence: number; actor
 interface GameState {
   code: string; started: boolean; finished: boolean; resolving: boolean; phase: string;
   phase_deadline: number | null; winner_id: string | null; current_player_id: string | null;
+  ended_by_player_id: string | null; end_reason: string | null;
   players: PlayerView[]; table: CardView[]; reveals: RevealView[]; you: { id: string; name: string };
   last_event: GameEvent | null; last_turn: TurnRecord | null; summary_deadline: number | null;
   summary_ack_player_ids: string[]; summary_human_count: number;
@@ -92,6 +93,9 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
       const won = event.winner_id === stateRef.current?.you.id;
       text = won ? "恭喜你赢下这局！" : `${playerName(event.winner_id)}赢下了这局！`;
       tone = won ? "excited" : "sad";
+    } else if (event.event === "game_ended") {
+      text = `${event.player_name || playerName(event.actor_player_id)}结束了本局游戏。`;
+      setSpotlightReveal(null);
     } else if (event.event === "turn_started") {
       setAnnouncement("");
       setSpotlightReveal(null);
@@ -178,6 +182,7 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
   const summarySeconds = Math.max(0, Math.ceil(((state.summary_deadline || 0) * 1000 - now) / 1000));
   const readyHumans = state.players.filter((player) => !player.is_bot && state.summary_ack_player_ids.includes(player.id)).length;
   const winner = state.players.find((player) => player.id === state.winner_id);
+  const endedBy = state.players.find((player) => player.id === state.ended_by_player_id);
 
   const PlayerSeat = ({ player, position }: { player?: PlayerView; position: "left" | "right" | "self" }) => {
     if (!player) return null;
@@ -194,7 +199,7 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
   };
 
   return <main className={styles.game} onPointerDown={() => narratorRef.current.unlock()}>
-    <header className={styles.gameBar}><div><b>✦ TRIO 三人场</b><span>房间 {state.code}</span></div><div><span>{phaseText}</span><button onClick={toggleMute}>{muted ? "🔇 开启声音" : "🔊 声音"}</button><button onClick={() => setRulesOpen(true)}>规则</button></div></header>
+    <header className={styles.gameBar}><div><b>✦ TRIO 三人场</b><span>房间 {state.code}</span></div><div><span>{phaseText}</span><button onClick={toggleMute}>{muted ? "🔇 开启声音" : "🔊 声音"}</button><button onClick={() => setRulesOpen(true)}>规则</button>{!state.finished && <button className={styles.endGame} onClick={() => { if (window.confirm("确定结束本局游戏吗？另一位玩家也会立即退出本局。")) send({ action: "end_game" }); }}>结束本局</button>}</div></header>
     <div className={styles.tableShell}>
       <div className={styles.felt} />
       <PlayerSeat player={seats.human} position="left" />
@@ -221,7 +226,7 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
       <p>下一位：{playerName(state.last_turn.next_player_id || undefined)}</p>
       <button disabled={state.summary_ack_player_ids.includes(state.you.id)} onClick={() => send({ action: "skip_summary" })}>{state.summary_ack_player_ids.includes(state.you.id) ? "你已准备" : `跳过等待 · ${readyHumans}/${state.summary_human_count}`}</button>
     </section></div>}
-    {state.finished && <div className={styles.modalBackdrop}><section className={styles.summary}><small>牌局结束</small><h2>{winner?.id === state.you.id ? "你赢了！" : `${winner?.name || "玩家"} 获胜`}</h2><div className={styles.summaryCards}>{state.last_turn?.reveals.map((reveal, index) => <Card card={reveal} key={index}/>)}</div><button onClick={() => window.location.reload()}>再来一局</button></section></div>}
+    {state.finished && <div className={styles.modalBackdrop}><section className={styles.summary}><small>牌局结束</small><h2>{state.end_reason === "ended_by_player" ? "本局已结束" : winner?.id === state.you.id ? "你赢了！" : `${winner?.name || "玩家"} 获胜`}</h2>{state.end_reason === "ended_by_player" ? <p>{endedBy?.id === state.you.id ? "你结束了本局游戏。" : `${endedBy?.name || "另一位玩家"}结束了本局游戏。`}</p> : <div className={styles.summaryCards}>{state.last_turn?.reveals.map((reveal, index) => <Card card={reveal} key={index}/>)}</div>}<button onClick={() => window.location.reload()}>开始新局</button></section></div>}
     {rulesOpen && <div className={styles.modalBackdrop} onClick={() => setRulesOpen(false)}><section className={styles.rules} onClick={(event) => event.stopPropagation()}><button className={styles.close} onClick={() => setRulesOpen(false)}>×</button><h2>怎么玩</h2><p>轮流翻牌，每次只能翻桌牌，或任意玩家手中当前最小（LOW）/最大（HIGH）的牌。</p><p>连续翻出三个相同数字即可收下一组 Trio；拿到三个 Trio，或拿到数字 7 的 Trio，立即获胜。</p><p>第二或第三张不相同，本回合结束。所有隐藏牌都由服务器保护。</p></section></div>}
     {error && <p className={styles.toast}>{error}</p>}
   </main>;
