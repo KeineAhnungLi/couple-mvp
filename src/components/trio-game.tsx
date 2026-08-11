@@ -8,7 +8,7 @@ interface CardView { id?: string; index?: number; value: number | null; removed?
 interface PlayerView { id: string; name: string; is_bot: boolean; hand_count: number; hand: CardView[] | null; trios: number[] }
 interface RevealView { source: "table" | "hand"; value: number; card_name: string; player_id: string | null; table_index: number | null; side?: "low" | "high" }
 interface TurnRecord { actor_player_id: string; reveals: RevealView[]; result: string; trio_value: number | null; next_player_id: string | null }
-interface GameEvent { type: "game_event"; event: string; sequence: number; actor_player_id?: string; target_player_id?: string; player_name?: string; side?: "low" | "high"; value?: number; card_name?: string; reveal_count?: number; winner_id?: string }
+interface GameEvent { type: "game_event"; event: string; sequence: number; actor_player_id?: string; target_player_id?: string; player_name?: string; source?: "table" | "hand"; side?: "low" | "high"; table_index?: number; value?: number; card_name?: string; reveal_count?: number; winner_id?: string }
 interface GameState {
   code: string; started: boolean; finished: boolean; resolving: boolean; phase: string;
   phase_deadline: number | null; winner_id: string | null; current_player_id: string | null;
@@ -35,6 +35,7 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
   const [phaseText, setPhaseText] = useState("正在进入情侣房间…");
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
+  const [spotlightReveal, setSpotlightReveal] = useState<RevealView | null>(null);
   const [muted, setMuted] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -60,14 +61,21 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
     let text = "";
     let tone: NarrationTone = "normal";
     if (event.event === "hand_reveal_requested") {
+      setSpotlightReveal(null);
       const key = `${event.actor_player_id}:${event.target_player_id}:${event.side}`;
       text = `${playerName(event.target_player_id)}，${repeatRef.current === key ? "还是" : ""}康康你${event.side === "high" ? "最大" : "最小"}的！`;
       repeatRef.current = key;
     } else if (event.event === "table_reveal_requested") {
+      setSpotlightReveal(null);
       text = "我要康康桌子上的这张牌！";
       repeatRef.current = "";
-    } else if (event.event === "card_revealed" && event.target_player_id === event.actor_player_id) {
-      text = `哈哈，我${event.side === "high" ? "最大" : "最小"}的是一张${event.card_name}！`;
+    } else if (event.event === "card_revealed") {
+      if (typeof event.value === "number" && event.card_name && event.source) {
+        setSpotlightReveal({ source: event.source, value: event.value, card_name: event.card_name, player_id: event.target_player_id || null, table_index: event.table_index ?? null, side: event.side });
+      }
+      if (event.source === "table") text = `桌子上的这张牌，是一张${event.card_name}！`;
+      else if (event.target_player_id === event.actor_player_id) text = `哈哈，我${event.side === "high" ? "最大" : "最小"}的是一张${event.card_name}！`;
+      else text = `${playerName(event.target_player_id)}${event.side === "high" ? "最大" : "最小"}的牌，是一张${event.card_name}！`;
     } else if (event.event === "mismatch") {
       text = event.reveal_count === 3 ? "啊啊啊啊啊啊啊就差一点啊啊啊啊啊啊！" : "怎么不一样啊！";
       tone = "sad";
@@ -84,6 +92,9 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
       const won = event.winner_id === stateRef.current?.you.id;
       text = won ? "恭喜你赢下这局！" : `${playerName(event.winner_id)}赢下了这局！`;
       tone = won ? "excited" : "sad";
+    } else if (event.event === "turn_started") {
+      setAnnouncement("");
+      setSpotlightReveal(null);
     }
     if (text) {
       setAnnouncement(text);
@@ -191,7 +202,7 @@ export const TrioGame = ({ identityToken, viewerName }: TrioGameProps) => {
       <section className={styles.centerTable} aria-label="中央桌牌">
         {state.table.map((card) => card.removed ? <div className={styles.cardSlot} key={card.index}/> : <Card key={card.index} card={card} back={card.value === null} selectable={actionable && card.value === null} onClick={() => send({ action: "reveal_table", index: card.index })}/>) }
       </section>
-      {announcement && <aside className={styles.announcement}><span>📣</span><strong>{announcement}</strong></aside>}
+      {announcement && <aside className={styles.announcement}>{spotlightReveal ? <div className={styles.announcementCard}><Card card={spotlightReveal}/></div> : <span>📣</span>}<strong>{announcement}</strong></aside>}
       <PlayerSeat player={seats.me} position="self" />
       <section className={styles.myHand}>{(seats.me?.hand || []).map((card, index, cards) => {
         const side = index === 0 ? "low" : index === cards.length - 1 ? "high" : null;
