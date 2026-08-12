@@ -48,11 +48,11 @@ export class AudioNarrator {
     const utterance = new SpeechSynthesisUtterance(item.text);
     utterance.lang = "zh-CN";
     const delivery = {
-      normal: { rate: 1.03, pitch: 1.05, volume: 1 },
-      excited: { rate: 1.15, pitch: 1.25, volume: 1 },
-      sad: { rate: 0.84, pitch: 0.78, volume: 0.9 },
-      alarm: { rate: 1.24, pitch: 1.38, volume: 1 },
-      bot: { rate: 0.9, pitch: 0.9, volume: 0.9 },
+      normal: { rate: 1.18, pitch: 1.05, volume: 1 },
+      excited: { rate: 1.28, pitch: 1.22, volume: 1 },
+      sad: { rate: 1.02, pitch: 0.82, volume: 0.9 },
+      alarm: { rate: 1.34, pitch: 1.32, volume: 1 },
+      bot: { rate: 1.08, pitch: 0.92, volume: 0.9 },
     }[item.tone];
     utterance.rate = delivery.rate;
     utterance.pitch = delivery.pitch;
