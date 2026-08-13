@@ -29,6 +29,7 @@ export const env = {
   APP_BASE_URL: readEnv("APP_BASE_URL", "http://localhost:3000"),
   NEXT_PUBLIC_APP_URL: readEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
   SESSION_SECRET: readEnv("SESSION_SECRET"),
+  TRIO_SHARED_SECRET: readEnv("TRIO_SHARED_SECRET"),
   SESSION_COOKIE_NAME: readEnv("SESSION_COOKIE_NAME", "couple_session"),
   SESSION_TTL_DAYS: Number(readEnv("SESSION_TTL_DAYS", "30")),
   COS_SECRET_ID: readEnv("COS_SECRET_ID"),

@@ -508,9 +508,8 @@ export const getPetInteractions = async (coupleId: string): Promise<PetInteracti
 };
 
 export const getDashboardSnapshot = async (coupleId: string) => {
-  const [prompt, petState, latestPhoto, latestDiary, reminders] = await Promise.all([
+  const [prompt, latestPhoto, latestDiary, reminders] = await Promise.all([
     getTodayPrompt(),
-    getPetState(coupleId),
     getLatestPhoto(coupleId),
     getLatestDiaryEntry(coupleId),
     getReminders(coupleId),
@@ -520,7 +519,6 @@ export const getDashboardSnapshot = async (coupleId: string) => {
 
   return {
     prompt,
-    petState,
     latestPhoto,
     latestDiary,
     nextReminder,

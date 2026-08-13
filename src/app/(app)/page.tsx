@@ -36,19 +36,12 @@ export default async function HomePage() {
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand">像素宠物</p>
-        {dashboard.petState ? (
-          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-            <p>等级：{dashboard.petState.level}</p>
-            <p>成长值：{dashboard.petState.growth_points}</p>
-            <p>心情：{dashboard.petState.mood}</p>
-            <p>健康：{dashboard.petState.health}</p>
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-muted">宠物状态暂未初始化</p>
-        )}
-        <Link href="/pet" className="mt-3 inline-block text-sm font-semibold text-brand">
-          查看宠物
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand">Trio 卡牌游戏</p>
+        <p className="mt-2 text-sm leading-6">
+          两位真人玩家与一位规则 Bot 的三人牌局。系统会使用情侣身份自动进入同一个房间。
+        </p>
+        <Link href="/trio" className="mt-3 inline-block text-sm font-semibold text-brand">
+          开始 Trio
         </Link>
       </section>
 
