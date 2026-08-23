@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { dbQueryOne } from "@/lib/server/db";
+import { withTransaction } from "@/lib/server/db";
 import { uploadFootprintPhotoToCos } from "@/lib/server/footprint-storage";
 
 const MAX_PHOTO_COUNT = 6;
@@ -35,8 +35,11 @@ export async function createFootprintEntryAction(formData: FormData) {
   const tags = Array.from(new Set(formData.getAll("tags").map((value) => String(value).trim()).filter(Boolean))).slice(0, 10);
   const files = formData
     .getAll("photos")
-    .filter((value): value is File => value instanceof File && value.size > 0)
-    .slice(0, MAX_PHOTO_COUNT);
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  if (files.length > MAX_PHOTO_COUNT) {
+    return redirectWithError(`一次最多选择 ${MAX_PHOTO_COUNT} 张照片`);
+  }
 
   if (!placeName && !city && !note && files.length === 0) {
     return redirectWithError("至少写下一个地点、几句话，或添加一张照片");
@@ -67,62 +70,75 @@ export async function createFootprintEntryAction(formData: FormData) {
     return redirectWithError("GPS 经度不正确");
   }
 
-  let tripId: string | null = null;
   const createTrip = formData.get("createTrip") === "on";
-  if (createTrip) {
-    const tripTitle = text(formData, "tripTitle");
-    const tripStartDate = text(formData, "tripStartDate");
-    const tripEndDate = text(formData, "tripEndDate");
-    if (!tripTitle || !tripStartDate || !tripEndDate) {
-      return redirectWithError("旅行名称和起止日期需要填写完整");
-    }
-    if (tripEndDate < tripStartDate) {
-      return redirectWithError("旅行结束日期不能早于开始日期");
-    }
-    const trip = await dbQueryOne<{ id: string }>(
-      `insert into footprint_trips
-         (user_id, title, start_date, end_date, province, city, overall_mood)
-       values ($1, $2, $3::date, $4::date, $5, $6, $7)
-       returning id`,
-      [context.userId, tripTitle, tripStartDate, tripEndDate, province || null, city || null, mood || null],
-    );
-    tripId = trip?.id ?? null;
+  const tripTitle = text(formData, "tripTitle");
+  const tripStartDate = text(formData, "tripStartDate");
+  const tripEndDate = text(formData, "tripEndDate");
+
+  if (createTrip && (!tripTitle || !tripStartDate || !tripEndDate)) {
+    return redirectWithError("旅行名称和起止日期需要填写完整");
+  }
+  if (createTrip && tripEndDate < tripStartDate) {
+    return redirectWithError("旅行结束日期不能早于开始日期");
   }
 
-  const entry = await dbQueryOne<{ id: string }>(
-    `insert into footprint_entries
-       (user_id, trip_id, captured_at, latitude, longitude, province, city, district, place_name, mood, note, tags)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::text[])
-     returning id`,
-    [
-      context.userId,
-      tripId,
-      capturedAt.toISOString(),
-      latitude,
-      longitude,
-      province || null,
-      city || null,
-      district || null,
-      placeName || null,
-      mood || null,
-      note || null,
-      tags,
-    ],
-  );
+  let entryId: string;
+  try {
+    entryId = await withTransaction(async (client) => {
+      let tripId: string | null = null;
 
-  if (!entry) return redirectWithError("保存失败，请稍后重试");
+      if (createTrip) {
+        const tripResult = await client.query<{ id: string }>(
+          `insert into footprint_trips
+             (user_id, title, start_date, end_date, province, city, overall_mood)
+           values ($1, $2, $3::date, $4::date, $5, $6, $7)
+           returning id`,
+          [context.userId, tripTitle, tripStartDate, tripEndDate, province || null, city || null, mood || null],
+        );
+        tripId = tripResult.rows[0]?.id ?? null;
+        if (!tripId) throw new Error("旅行保存失败");
+      }
+
+      const entryResult = await client.query<{ id: string }>(
+        `insert into footprint_entries
+           (user_id, trip_id, captured_at, latitude, longitude, province, city, district, place_name, mood, note, tags)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::text[])
+         returning id`,
+        [
+          context.userId,
+          tripId,
+          capturedAt.toISOString(),
+          latitude,
+          longitude,
+          province || null,
+          city || null,
+          district || null,
+          placeName || null,
+          mood || null,
+          note || null,
+          tags,
+        ],
+      );
+      const id = entryResult.rows[0]?.id;
+      if (!id) throw new Error("记录保存失败");
+      return id;
+    });
+  } catch {
+    return redirectWithError("保存失败，请稍后重试");
+  }
 
   let photoFailures = 0;
   for (const [index, file] of files.entries()) {
     try {
       const uploaded = await uploadFootprintPhotoToCos(context.userId, file);
-      await dbQueryOne(
-        `insert into footprint_entry_photos
-           (entry_id, user_id, object_key, image_url, sort_order, taken_at)
-         values ($1, $2, $3, $4, $5, $6)
-         returning id`,
-        [entry.id, context.userId, uploaded.objectKey, uploaded.url, index, capturedAt.toISOString()],
-      );
+      await withTransaction(async (client) => {
+        await client.query(
+          `insert into footprint_entry_photos
+             (entry_id, user_id, object_key, image_url, sort_order, taken_at)
+           values ($1, $2, $3, $4, $5, $6)`,
+          [entryId, context.userId, uploaded.objectKey, uploaded.url, index, capturedAt.toISOString()],
+        );
+      });
     } catch {
       photoFailures += 1;
     }
