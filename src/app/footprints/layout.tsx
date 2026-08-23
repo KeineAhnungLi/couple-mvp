@@ -7,9 +7,13 @@ import "./footprints.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://travel.shanjideutsch.site"),
   title: "妈妈的足迹手账",
   description: "把走过的地方、照片和心情慢慢收进一本私人手账。",
   applicationName: "足迹手账",
+  alternates: {
+    canonical: "/footprints",
+  },
   appleWebApp: {
     capable: true,
     title: "足迹手账",
