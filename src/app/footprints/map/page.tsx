@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { getFootprintEntriesForYear } from "@/lib/data/footprints";
+import { getShanghaiDateParts } from "@/lib/footprint-time";
 import { AmapFootprintMap } from "@/components/footprints/amap";
 import { EntryCard, PageHeader, PaperCard, SectionHeading } from "@/components/footprints/ui";
 
@@ -9,7 +10,7 @@ type SearchParams = Promise<{ year?: string; type?: string }>;
 export default async function FootprintMapPage({ searchParams }: { searchParams: SearchParams }) {
   const context = await requireAuth();
   const params = await searchParams;
-  const currentYear = new Date().getFullYear();
+  const currentYear = getShanghaiDateParts().year;
   const parsedYear = Number(params.year);
   const year = Number.isInteger(parsedYear) && parsedYear > 2000 && parsedYear < 2100 ? parsedYear : currentYear;
   const type = ["全部", "旅行", "日常"].includes(params.type || "") ? params.type! : "全部";
