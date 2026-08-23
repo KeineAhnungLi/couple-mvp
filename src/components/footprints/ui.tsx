@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { FootprintEntry } from "@/types/footprints";
 import { SearchIcon, SmileIcon } from "@/components/footprints/icons";
+import { formatShanghaiMonthDayLabel } from "@/lib/footprint-time";
 
 export function BotanicalBranch({ className = "" }: { className?: string }) {
   return (
@@ -65,12 +66,6 @@ export function PageHeader({
   );
 }
 
-const dateLabel = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
-};
-
 const placeLabel = (entry: FootprintEntry) =>
   entry.place_name || entry.city || entry.district || entry.province || "未命名地点";
 
@@ -117,7 +112,7 @@ export function EntryCard({ entry, href }: { entry: FootprintEntry; href?: strin
     <PaperCard className="fp-entry-card">
       <Polaroid src={entry.photos[0]?.image_url} alt={placeLabel(entry)} />
       <div className="fp-entry-copy">
-        <span className="fp-entry-date">{dateLabel(entry.captured_at)} · {placeLabel(entry)}</span>
+        <span className="fp-entry-date">{formatShanghaiMonthDayLabel(entry.captured_at)} · {placeLabel(entry)}</span>
         <p>{entry.note || "这一页还没有写下文字，但地点已经被好好收进手账。"}</p>
         <MoodBadge mood={entry.mood} />
         <span className="fp-entry-lineart" aria-hidden="true">⌇❧</span>
