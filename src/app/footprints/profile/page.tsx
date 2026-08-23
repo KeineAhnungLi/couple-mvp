@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { getFootprintYearSummary } from "@/lib/data/footprints";
+import { getShanghaiDateParts } from "@/lib/footprint-time";
 import { PageHeader, PaperCard } from "@/components/footprints/ui";
 
 export default async function FootprintProfilePage() {
   const context = await requireAuth();
-  const year = new Date().getFullYear();
+  const year = getShanghaiDateParts().year;
   const summary = await getFootprintYearSummary(context.userId, year);
   const displayName = context.profile.display_name || "妈妈";
 
