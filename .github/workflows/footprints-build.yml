@@ -1,0 +1,40 @@
+name: Footprints build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/footprint-journal-mvp]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      SESSION_SECRET: ci-only-session-secret-not-for-production
+      APP_BASE_URL: https://travel.shanjideutsch.site
+      NEXT_PUBLIC_APP_URL: https://travel.shanjideutsch.site
+      SESSION_COOKIE_SECURE: "true"
+      COS_SECRET_ID: ci-placeholder
+      COS_SECRET_KEY: ci-placeholder
+      COS_REGION: ap-nanjing
+      COS_BUCKET: ci-placeholder
+      COS_PUBLIC_BASE_URL: https://cdn.shanjideutsch.site
+      NEXT_PUBLIC_AMAP_KEY: ""
+      NEXT_PUBLIC_AMAP_SECURITY_JS_CODE: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
