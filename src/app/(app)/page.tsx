@@ -14,7 +14,7 @@ export default async function HomePage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">新页面</p>
         <p className="mt-2 text-base font-semibold text-emerald-950">妈妈的足迹手账</p>
         <p className="mt-1 text-sm leading-6 text-emerald-900/70">记录 GPS、照片、地点、旅行日历和一整年的回忆。</p>
-        <Link href="/footprints" className="mt-3 inline-block text-sm font-semibold text-emerald-700">
+        <Link href="https://travel.shanjideutsch.site" className="mt-3 inline-block text-sm font-semibold text-emerald-700">
           打开足迹手账
         </Link>
       </section>
