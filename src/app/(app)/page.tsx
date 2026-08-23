@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import { getDashboardSnapshot } from "@/lib/data/dashboard";
 import { requireCoupleContext } from "@/lib/auth";
@@ -10,12 +10,19 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-4">
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">新页面</p>
+        <p className="mt-2 text-base font-semibold text-emerald-950">妈妈的足迹手账</p>
+        <p className="mt-1 text-sm leading-6 text-emerald-900/70">记录 GPS、照片、地点、旅行日历和一整年的回忆。</p>
+        <Link href="/footprints" className="mt-3 inline-block text-sm font-semibold text-emerald-700">
+          打开足迹手账
+        </Link>
+      </section>
+
       <section className="rounded-2xl border border-line bg-surface p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-brand">今日 Prompt</p>
         <p className="mt-2 text-sm leading-6">{dashboard.prompt.promptText}</p>
-        <Link href="/diary" className="mt-3 inline-block text-sm font-semibold text-brand">
-          去写日记
-        </Link>
+        <Link href="/diary" className="mt-3 inline-block text-sm font-semibold text-brand">去写日记</Link>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4">
@@ -23,16 +30,12 @@ export default async function HomePage() {
         {dashboard.nextReminder ? (
           <>
             <p className="mt-2 text-sm">{dashboard.nextReminder.title}</p>
-            <p className="mt-1 text-xs text-muted">
-              {new Date(dashboard.nextReminder.remind_at).toLocaleString()}
-            </p>
+            <p className="mt-1 text-xs text-muted">{new Date(dashboard.nextReminder.remind_at).toLocaleString()}</p>
           </>
         ) : (
           <p className="mt-2 text-sm text-muted">暂无未完成提醒。</p>
         )}
-        <Link href="/reminders" className="mt-3 inline-block text-sm font-semibold text-brand">
-          管理提醒
-        </Link>
+        <Link href="/reminders" className="mt-3 inline-block text-sm font-semibold text-brand">管理提醒</Link>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4">
@@ -47,9 +50,7 @@ export default async function HomePage() {
         ) : (
           <p className="mt-2 text-sm text-muted">宠物状态暂未初始化</p>
         )}
-        <Link href="/pet" className="mt-3 inline-block text-sm font-semibold text-brand">
-          查看宠物
-        </Link>
+        <Link href="/pet" className="mt-3 inline-block text-sm font-semibold text-brand">查看宠物</Link>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4">
@@ -71,9 +72,7 @@ export default async function HomePage() {
         ) : (
           <p className="mt-2 text-sm text-muted">还没有照片，去上传第一张吧。</p>
         )}
-        <Link href="/photos" className="mt-3 inline-block text-sm font-semibold text-brand">
-          打开相册
-        </Link>
+        <Link href="/photos" className="mt-3 inline-block text-sm font-semibold text-brand">打开相册</Link>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4">
@@ -86,9 +85,7 @@ export default async function HomePage() {
         ) : (
           <p className="mt-2 text-sm text-muted">还没有日记，今晚写一条吧。</p>
         )}
-        <Link href="/trash" className="mt-3 inline-block text-sm font-semibold text-brand">
-          打开垃圾箱
-        </Link>
+        <Link href="/trash" className="mt-3 inline-block text-sm font-semibold text-brand">打开垃圾箱</Link>
       </section>
     </div>
   );
