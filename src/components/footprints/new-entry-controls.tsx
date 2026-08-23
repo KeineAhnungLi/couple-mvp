@@ -112,8 +112,8 @@ export function PhotoPicker() {
         <label htmlFor="footprint-photos" className="fp-add-photo-card">
           <span className="fp-tape fp-tape-green" aria-hidden="true" />
           <CameraIcon size={34} />
-          <strong>{previews.length ? "继续添加" : "添加照片"}</strong>
-          <small>最多 6 张 · 总计不超过 18MB</small>
+          <strong>{previews.length ? "重新选择" : "添加照片"}</strong>
+          <small>一次可选多张 · 最多 6 张 · 总计不超过 18MB</small>
         </label>
       </div>
     </div>
@@ -142,7 +142,7 @@ export function MoodSelector() {
 }
 
 export function TagSelector() {
-  const [selected, setSelected] = useState<string[]>(["旅行", "和家人"]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [custom, setCustom] = useState("");
   const options = useMemo(() => Array.from(new Set([...defaultTags, ...selected])), [selected]);
 
