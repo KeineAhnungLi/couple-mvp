@@ -1,6 +1,7 @@
 import COS from "cos-nodejs-sdk-v5";
 import { randomUUID } from "node:crypto";
 import { assertEnv, env } from "@/lib/env";
+import { getShanghaiDateParts } from "@/lib/footprint-time";
 
 const mimeToExt: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -38,11 +39,9 @@ export const uploadFootprintPhotoToCos = async (
 ): Promise<UploadedFootprintPhoto> => {
   assertEnv("COS_BUCKET", "COS_REGION", "COS_SECRET_ID", "COS_SECRET_KEY");
 
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const { year, month } = getShanghaiDateParts();
   const extension = normalizeExt(file.name, file.type || "image/jpeg");
-  const objectKey = `footprints/${userId}/${year}/${month}/${randomUUID()}.${extension}`;
+  const objectKey = `footprints/${userId}/${year}/${String(month).padStart(2, "0")}/${randomUUID()}.${extension}`;
   const body = Buffer.from(await file.arrayBuffer());
 
   await new Promise<void>((resolve, reject) => {
