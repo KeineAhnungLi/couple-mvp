@@ -60,6 +60,8 @@ const entryGroupBy = `
   group by e.id
 `;
 
+const shanghaiTimestamp = (column: string) => `(${column} at time zone 'Asia/Shanghai')`;
+
 export const getRecentFootprintEntries = async (
   userId: string,
   limit = 8,
@@ -82,8 +84,8 @@ export const getFootprintEntriesForYear = async (
   const rows = await dbQuery<EntryRow>(
     `${entrySelect}
      where e.user_id = $1
-       and e.captured_at >= make_date($2, 1, 1)
-       and e.captured_at < make_date($2 + 1, 1, 1)
+       and ${shanghaiTimestamp("e.captured_at")} >= make_date($2, 1, 1)::timestamp
+       and ${shanghaiTimestamp("e.captured_at")} < make_date($2 + 1, 1, 1)::timestamp
      ${entryGroupBy}
      order by e.captured_at asc`,
     [userId, year],
@@ -99,8 +101,8 @@ export const getFootprintEntriesForMonth = async (
   const rows = await dbQuery<EntryRow>(
     `${entrySelect}
      where e.user_id = $1
-       and e.captured_at >= make_date($2, $3, 1)
-       and e.captured_at < (make_date($2, $3, 1) + interval '1 month')
+       and ${shanghaiTimestamp("e.captured_at")} >= make_date($2, $3, 1)::timestamp
+       and ${shanghaiTimestamp("e.captured_at")} < (make_date($2, $3, 1) + interval '1 month')::timestamp
      ${entryGroupBy}
      order by e.captured_at asc`,
     [userId, year, month],
@@ -115,7 +117,7 @@ export const getFootprintEntryByDay = async (
   const row = await dbQueryOne<EntryRow>(
     `${entrySelect}
      where e.user_id = $1
-       and (e.captured_at at time zone 'Asia/Shanghai')::date = $2::date
+       and ${shanghaiTimestamp("e.captured_at")}::date = $2::date
      ${entryGroupBy}
      order by e.captured_at desc
      limit 1`,
@@ -135,8 +137,8 @@ export const getFootprintMonthSummary = async (
        count(*)::text as entry_count
      from footprint_entries
      where user_id = $1
-       and captured_at >= make_date($2, $3, 1)
-       and captured_at < (make_date($2, $3, 1) + interval '1 month')`,
+       and ${shanghaiTimestamp("captured_at")} >= make_date($2, $3, 1)::timestamp
+       and ${shanghaiTimestamp("captured_at")} < (make_date($2, $3, 1) + interval '1 month')::timestamp`,
     [userId, year, month],
   );
 
@@ -144,8 +146,8 @@ export const getFootprintMonthSummary = async (
     `select mood
      from footprint_entries
      where user_id = $1
-       and captured_at >= make_date($2, $3, 1)
-       and captured_at < (make_date($2, $3, 1) + interval '1 month')
+       and ${shanghaiTimestamp("captured_at")} >= make_date($2, $3, 1)::timestamp
+       and ${shanghaiTimestamp("captured_at")} < (make_date($2, $3, 1) + interval '1 month')::timestamp
        and mood is not null and trim(mood) <> ''
      group by mood
      order by count(*) desc, mood
@@ -176,8 +178,8 @@ export const getFootprintYearSummary = async (
      from footprint_entries e
      left join footprint_entry_photos p on p.entry_id = e.id
      where e.user_id = $1
-       and e.captured_at >= make_date($2, 1, 1)
-       and e.captured_at < make_date($2 + 1, 1, 1)`,
+       and ${shanghaiTimestamp("e.captured_at")} >= make_date($2, 1, 1)::timestamp
+       and ${shanghaiTimestamp("e.captured_at")} < make_date($2 + 1, 1, 1)::timestamp`,
     [userId, year],
   );
 
@@ -185,8 +187,8 @@ export const getFootprintYearSummary = async (
     `select mood
      from footprint_entries
      where user_id = $1
-       and captured_at >= make_date($2, 1, 1)
-       and captured_at < make_date($2 + 1, 1, 1)
+       and ${shanghaiTimestamp("captured_at")} >= make_date($2, 1, 1)::timestamp
+       and ${shanghaiTimestamp("captured_at")} < make_date($2 + 1, 1, 1)::timestamp
        and mood is not null and trim(mood) <> ''
      group by mood
      order by count(*) desc, mood
@@ -225,8 +227,8 @@ export const getOnThisDayFootprint = async (
   const row = await dbQueryOne<EntryRow>(
     `${entrySelect}
      where e.user_id = $1
-       and to_char(e.captured_at at time zone 'Asia/Shanghai', 'MM-DD') = $2
-       and extract(year from e.captured_at at time zone 'Asia/Shanghai') < $3
+       and to_char(${shanghaiTimestamp("e.captured_at")}, 'MM-DD') = $2
+       and extract(year from ${shanghaiTimestamp("e.captured_at")}) < $3
      ${entryGroupBy}
      order by e.captured_at desc
      limit 1`,
