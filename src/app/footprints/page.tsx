@@ -5,6 +5,7 @@ import {
   getFootprintMonthSummary,
   getRecentFootprintEntries,
 } from "@/lib/data/footprints";
+import { getShanghaiDateParts } from "@/lib/footprint-time";
 import { AmapFootprintMap } from "@/components/footprints/amap";
 import {
   EmptyScrapbook,
@@ -19,9 +20,7 @@ type SearchParams = Promise<{ saved?: string; photoFailures?: string }>;
 export default async function FootprintsHome({ searchParams }: { searchParams: SearchParams }) {
   const context = await requireAuth();
   const params = await searchParams;
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const { year, month } = getShanghaiDateParts();
 
   const [summary, recent, yearEntries] = await Promise.all([
     getFootprintMonthSummary(context.userId, year, month),
