@@ -3,9 +3,36 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FootprintEntry } from "@/types/footprints";
 
+interface AMapLocation {
+  lng: number;
+  lat: number;
+}
+
+interface AMapConvertResult {
+  locations?: AMapLocation[];
+}
+
+interface AMapInstance {
+  add: (overlays: unknown | unknown[]) => void;
+  setFitView: (overlays: unknown[], immediately?: boolean, avoid?: number[]) => void;
+  destroy: () => void;
+}
+
+interface AMapNamespace {
+  Map: new (container: HTMLElement, options: Record<string, unknown>) => AMapInstance;
+  Polyline: new (options: Record<string, unknown>) => unknown;
+  Marker: new (options: Record<string, unknown>) => unknown;
+  Pixel: new (x: number, y: number) => unknown;
+  convertFrom?: (
+    position: [number, number],
+    source: string,
+    callback: (status: string, result: AMapConvertResult) => void,
+  ) => void;
+}
+
 declare global {
   interface Window {
-    AMap?: any;
+    AMap?: AMapNamespace;
     _AMapSecurityConfig?: { securityJsCode?: string };
   }
 }
@@ -67,7 +94,7 @@ export function AmapFootprintMap({ entries, compact = false, className = "" }: A
           resolve({ entry, position: raw });
           return;
         }
-        AMap.convertFrom(raw, "gps", (status: string, result: { locations?: Array<{ lng: number; lat: number }> }) => {
+        AMap.convertFrom(raw, "gps", (status, result) => {
           const converted = status === "complete" ? result?.locations?.[0] : null;
           resolve({ entry, position: converted ? [converted.lng, converted.lat] : raw });
         });
