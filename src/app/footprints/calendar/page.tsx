@@ -6,6 +6,7 @@ import {
   getFootprintEntryByDay,
   getTripsForMonth,
 } from "@/lib/data/footprints";
+import { formatShanghaiDateKey, getShanghaiDateParts } from "@/lib/footprint-time";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/footprints/icons";
 import { MoodBadge, PageHeader, PaperCard, Polaroid } from "@/components/footprints/ui";
 import type { FootprintTrip } from "@/types/footprints";
@@ -14,12 +15,6 @@ type SearchParams = Promise<{ year?: string; month?: string; day?: string }>;
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const utcKey = (date: Date) => `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
-const shanghaiKey = (iso: string) => new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Shanghai",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-}).format(new Date(iso));
 
 const buildWeeks = (year: number, month: number) => {
   const first = new Date(Date.UTC(year, month - 1, 1));
@@ -51,12 +46,12 @@ const getTripSegment = (trip: FootprintTrip, week: Date[]) => {
 export default async function FootprintCalendarPage({ searchParams }: { searchParams: SearchParams }) {
   const context = await requireAuth();
   const params = await searchParams;
-  const now = new Date();
+  const today = getShanghaiDateParts();
   const parsedYear = Number(params.year);
   const parsedMonth = Number(params.month);
-  const year = Number.isInteger(parsedYear) && parsedYear >= 2000 ? parsedYear : now.getFullYear();
-  const month = Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : now.getMonth() + 1;
-  const defaultDay = `${year}-${pad(month)}-${pad(Math.min(now.getDate(), new Date(year, month, 0).getDate()))}`;
+  const year = Number.isInteger(parsedYear) && parsedYear >= 2000 ? parsedYear : today.year;
+  const month = Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : today.month;
+  const defaultDay = `${year}-${pad(month)}-${pad(Math.min(today.day, new Date(year, month, 0).getDate()))}`;
   const selectedDay = /^\d{4}-\d{2}-\d{2}$/.test(params.day || "") ? params.day! : defaultDay;
 
   const [entries, trips, selectedEntry] = await Promise.all([
@@ -65,12 +60,13 @@ export default async function FootprintCalendarPage({ searchParams }: { searchPa
     getFootprintEntryByDay(context.userId, selectedDay),
   ]);
 
-  const entriesByDay = new Map(entries.map((entry) => [shanghaiKey(entry.captured_at), entry]));
+  const entriesByDay = new Map(entries.map((entry) => [formatShanghaiDateKey(entry.captured_at), entry]));
   const weeks = buildWeeks(year, month);
 
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
   const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
-  const todayHref = `/footprints/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}&day=${shanghaiKey(now.toISOString())}`;
+  const todayKey = `${today.year}-${pad(today.month)}-${pad(today.day)}`;
+  const todayHref = `/footprints/calendar?year=${today.year}&month=${today.month}&day=${todayKey}`;
 
   return (
     <>
