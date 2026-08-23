@@ -5,6 +5,7 @@ import {
   getOnThisDayFootprint,
   getRecentFootprintEntries,
 } from "@/lib/data/footprints";
+import { formatShanghaiMonthKey, getShanghaiDateParts } from "@/lib/footprint-time";
 import { AmapFootprintMap } from "@/components/footprints/amap";
 import {
   EmptyScrapbook,
@@ -20,9 +21,9 @@ const place = (entry: FootprintEntry) => entry.place_name || entry.city || entry
 
 export default async function FootprintMemoriesPage() {
   const context = await requireAuth();
-  const now = new Date();
-  const year = now.getFullYear();
-  const monthDay = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const today = getShanghaiDateParts();
+  const year = today.year;
+  const monthDay = `${String(today.month).padStart(2, "0")}-${String(today.day).padStart(2, "0")}`;
 
   const [onThisDay, recent, summary, yearEntries] = await Promise.all([
     getOnThisDayFootprint(context.userId, monthDay, year),
@@ -32,8 +33,7 @@ export default async function FootprintMemoriesPage() {
   ]);
 
   const monthGroups = recent.reduce<Map<string, FootprintEntry[]>>((map, entry) => {
-    const date = new Date(entry.captured_at);
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const key = formatShanghaiMonthKey(entry.captured_at);
     const list = map.get(key) || [];
     list.push(entry);
     map.set(key, list);
@@ -48,7 +48,7 @@ export default async function FootprintMemoriesPage() {
         <PaperCard className="fp-memory-feature">
           <div>
             <div className="fp-paper-label"><span>那年今日</span><i>⌁</i></div>
-            <span className="fp-memory-date">{new Date(onThisDay.captured_at).getFullYear()}年 · 今天</span>
+            <span className="fp-memory-date">{getShanghaiDateParts(onThisDay.captured_at).year}年 · 今天</span>
             <h2>那年的今天 · {place(onThisDay)}</h2>
             <p>{onThisDay.note || "当时没有写下文字，但这张照片和地点还在。"}</p>
             <MoodBadge mood={onThisDay.mood} />
